@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stress Check & Relaxation Activity</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & Base ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #F5F3EE;
+    --surface:   #FFFFFF;
+    --border:    #E2DED6;
+    --accent:    #2A6041;
+    --accent-lt: #EAF3DE;
+    --accent-dk: #1A3F28;
+    --amber:     #C47A1A;
+    --amber-lt:  #FDF3E0;
+    --red:       #B03030;
+    --red-lt:    #FCEAEA;
+    --text:      #1C1C1A;
+    --muted:     #6B6860;
+    --hint:      #9B9890;
+    --radius:    12px;
+    --radius-sm: 8px;
+    --shadow:    0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .app { max-width: 680px; margin: 0 auto; }
+
+  /* ── Steps ────────────────────────────────────────────── */
+  .step { display: none; animation: fadeUp 0.3s ease; }
+  .step.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Cards ────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+  }
+  .card-tinted {
+    background: #F0EDE6;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* ── Typography ───────────────────────────────────────── */
+  .app-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+  }
+  .app-title em { font-style: italic; color: var(--accent); }
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  .sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 1.25rem;
+  }
+
+  /* ── Step indicator ───────────────────────────────────── */
+  .step-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+  }
+  .step-bar .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.25s;
+  }
+  .step-bar .dot.done { background: var(--accent); }
+  .step-bar .dot.active { background: var(--accent); width: 22px; border-radius: 4px; }
+  .step-bar .step-lbl { font-size: 12px; color: var(--hint); margin-left: 4px; }
+
+  /* ── Participant row ──────────────────────────────────── */
+  .pid-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    padding: 0.6rem 1rem;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+  .pid-label { font-size: 12px; color: var(--hint); }
+  .pid-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: 0.04em; }
+  .pid-ts { font-size: 11px; color: var(--hint); margin-left: auto; }
+
+  /* ── Scale legend ─────────────────────────────────────── */
+  .scale-legend {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--hint);
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* ── Questions ────────────────────────────────────────── */
+  .q-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .q-num {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+  }
+  .q-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.55;
+    margin-bottom: 1rem;
+  }
+  .likert {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .likert label { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+  .likert input[type=radio] { display: none; }
+  .lbtn {
+    width: 100%;
+    padding: 7px 3px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    text-align: center;
+    color: var(--muted);
+    background: var(--bg);
+    cursor: pointer;
+    line-height: 1.3;
+    transition: all 0.12s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .lbtn .val { display: block; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 1px; }
+  .likert input:checked + .lbtn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .likert input:checked + .lbtn .val { color: #fff; }
+  .likert .lbtn:hover { border-color: var(--accent); background: var(--accent-lt); }
+
+  /* ── Buttons ──────────────────────────────────────────── */
+  .btn {
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-dk); border-color: var(--accent-dk); }
+  .btn-ghost { border-color: var(--red); color: var(--red); }
+  .btn-ghost:hover { background: var(--red-lt); }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .err-msg {
+    font-size: 13px;
+    color: var(--red);
+    display: none;
+    margin-top: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: var(--red-lt);
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Breathing ────────────────────────────────────────── */
+  .breath-outer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 0 0.5rem;
+  }
+  .ring-container {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin-bottom: 1.25rem;
+  }
+  #breathRing {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 1s ease, border-color 0.6s, background 0.6s;
+    background: var(--bg);
+  }
+  #breathRing.inhale { transform: scale(1.18); border-color: var(--accent); background: var(--accent-lt); }
+  #breathRing.hold   { transform: scale(1.12); border-color: var(--amber); background: var(--amber-lt); }
+  #breathRing.exhale { transform: scale(0.88); border-color: #5499b0; background: #e8f3f8; }
+  #breathCount { font-family: 'DM Serif Display', serif; font-size: 42px; color: var(--text); line-height: 1; }
+  #breathPhase { font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 4px; }
+
+  .box-phases {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 1.25rem;
+    width: 100%;
+  }
+  .bphase {
+    padding: 0.75rem 0.4rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--muted);
+    background: var(--bg);
+    transition: all 0.3s;
+  }
+  .bphase strong { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .bphase.on-inhale { border-color: var(--accent); background: var(--accent-lt); color: var(--accent-dk); }
+  .bphase.on-inhale strong { color: var(--accent); }
+  .bphase.on-hold   { border-color: var(--amber); background: var(--amber-lt); color: #7a4a0a; }
+  .bphase.on-hold strong { color: var(--amber); }
+  .bphase.on-exhale { border-color: #5499b0; background: #e8f3f8; color: #2a5f78; }
+  .bphase.on-exhale strong { color: #3a7fa0; }
+
+  .rounds-display {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .rounds-display strong { color: var(--text); font-weight: 600; }
+
+  /* ── Metrics ──────────────────────────────────────────── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .metric {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+  }
+  .metric-lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--hint); margin-bottom: 4px; }
+  .metric-val { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--text); line-height: 1.1; }
+  .metric-sub { font-size: 12px; font-weight: 500; margin-top: 3px; }
+
+  .lvl-low { color: var(--accent); }
+  .lvl-mod { color: var(--amber); }
+  .lvl-high { color: var(--red); }
+
+  /* ── Result message ───────────────────────────────────── */
+  .result-msg {
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+    border: 1px solid transparent;
+  }
+  .msg-good { background: var(--accent-lt); color: var(--accent-dk); border-color: #c2dfc9; }
+  .msg-same { background: #F0EDE6; color: #4a4840; border-color: var(--border); }
+  .msg-bad  { background: var(--red-lt); color: #7a2020; border-color: #f0c0c0; }
+
+  /* ── Interpretation pills ─────────────────────────────── */
+  .interp-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+  .pill-low  { background: var(--accent-lt); color: var(--accent-dk); border-color: #c2dfc9; }
+  .pill-mod  { background: var(--amber-lt);  color: #7a4a0a;          border-color: #f0d49a; }
+  .pill-high { background: var(--red-lt);    color: #7a2020;          border-color: #f0c0c0; }
+
+  /* ── Divider ──────────────────────────────────────────── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  /* ── Charts ───────────────────────────────────────────── */
+  .chart-wrap  { position: relative; width: 100%; height: 260px; margin-bottom: 0.5rem; }
+  .chart-wrap2 { position: relative; width: 100%; height: 240px; }
+
+  /* chart legend */
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  .chart-legend span { display: flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* ── Responsive ───────────────────────────────────────── */
+  @media (max-width: 480px) {
+    .app-title { font-size: 22px; }
+    .likert { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .lbtn { font-size: 10px; padding: 5px 1px; }
+    .lbtn .val { font-size: 13px; }
+    .box-phases { grid-template-columns: repeat(2, 1fr); }
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ════════════════════════════════════════════
+       STEP 1 — BEFORE SURVEY
+  ═════════════════════════════════════════════ -->
+  <div class="step active" id="step1">
+    <div class="card">
+      <div class="step-bar">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span class="step-lbl">Step 1 of 4 — Before survey</span>
+      </div>
+      <h1 class="app-title">Stress Check &amp;<br><em>Relaxation Activity</em></h1>
+      <p class="sub" style="margin-top:0.5rem">Rate how much you are feeling each of the following <strong style="font-weight:600">right now, in this moment</strong>. Answer honestly — there are no right or wrong answers.</p>
+      <div class="pid-row">
+        <span class="pid-label">Participant ID</span>
+        <span class="pid-val" id="pidDisplay">—</span>
+        <span class="pid-ts" id="tsDisplay">—</span>
+      </div>
+      <div class="scale-legend">
+        <span>0 = Not at all</span>
+        <span>1 = A little</span>
+        <span>2 = Somewhat</span>
+        <span>3 = Quite a bit</span>
+        <span>4 = Extremely</span>
+      </div>
+    </div>
+
+    <div id="beforeForm"></div>
+
+    <div class="err-msg" id="err1">Please answer all 10 questions before continuing.</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="submitBefore()">Continue to Breathing Activity →</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       STEP 2 — BREATHING ACTIVITY
+  ═════════════════════════════════════════════ -->
+  <div class="step" id="step2">
+    <div class="card">
+      <div class="step-bar">
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span class="step-lbl">Step 2 of 4 — Breathing activity</span>
+      </div>
+      <h2>Box Breathing <span style="color:var(--muted);font-size:16px">(4-4-4-4)</span></h2>
+      <p class="sub">A technique used to calm the nervous system. Follow the animation through <strong style="font-weight:600">4 complete rounds</strong>. Each phase lasts 4 seconds.</p>
+
+      <div class="box-phases">
+        <div class="bphase" id="ph0"><strong>Inhale</strong>4 seconds</div>
+        <div class="bphase" id="ph1"><strong>Hold</strong>4 seconds</div>
+        <div class="bphase" id="ph2"><strong>Exhale</strong>4 seconds</div>
+        <div class="bphase" id="ph3"><strong>Hold</strong>4 seconds</div>
+      </div>
+
+      <div class="breath-outer">
+        <div class="ring-container">
+          <div id="breathRing">
+            <div id="breathCount">–</div>
+            <div id="breathPhase">Press Start</div>
+          </div>
+        </div>
+        <div class="rounds-display">Rounds completed: <strong id="roundsCount">0</strong> / 4</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="breathBtn" onclick="startBreathing()">▶ Start</button>
+        <button class="btn btn-primary" id="nextBtn" onclick="goStep3()" style="display:none">Continue to After Survey →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       STEP 3 — AFTER SURVEY
+  ═════════════════════════════════════════════ -->
+  <div class="step" id="step3">
+    <div class="card">
+      <div class="step-bar">
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <span class="step-lbl">Step 3 of 4 — After survey</span>
+      </div>
+      <h2>After Activity</h2>
+      <p class="sub">Answer the same questions again, reflecting on <strong style="font-weight:600">how you feel right now</strong> — immediately after the breathing exercise.</p>
+      <div class="scale-legend">
+        <span>0 = Not at all</span>
+        <span>1 = A little</span>
+        <span>2 = Somewhat</span>
+        <span>3 = Quite a bit</span>
+        <span>4 = Extremely</span>
+      </div>
+    </div>
+
+    <div id="afterForm"></div>
+
+    <div class="err-msg" id="err3">Please answer all 10 questions before continuing.</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="submitAfter()">See My Results →</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       STEP 4 — RESULTS + DASHBOARD
+  ═════════════════════════════════════════════ -->
+  <div class="step" id="step4">
+    <div class="card">
+      <div class="step-bar">
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+        <span class="step-lbl">Step 4 of 4 — Results</span>
+      </div>
+      <h2>Your Results</h2>
+      <p class="sub" id="pidResult" style="margin-bottom:0"></p>
+    </div>
+
+    <!-- Individual results -->
+    <div class="card">
+      <h3>Individual results</h3>
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-lbl">Pre-score</div>
+          <div class="metric-val" id="rPre">–</div>
+          <div class="metric-sub" id="rPreLvl">–</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">Post-score</div>
+          <div class="metric-val" id="rPost">–</div>
+          <div class="metric-sub" id="rPostLvl">–</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">Change</div>
+          <div class="metric-val" id="rDiff">–</div>
+          <div class="metric-sub" id="rDiffLbl">–</div>
+        </div>
+      </div>
+      <div class="result-msg" id="resultMsg"></div>
+      <h3 style="margin-bottom:0.5rem">Interpretation guide</h3>
+      <div class="interp-row">
+        <span class="pill pill-low">0–13 &nbsp;Low stress</span>
+        <span class="pill pill-mod">14–26 &nbsp;Moderate stress</span>
+        <span class="pill pill-high">27–40 &nbsp;High stress</span>
+      </div>
+    </div>
+
+    <!-- Group dashboard -->
+    <div class="card">
+      <h3>Group dashboard</h3>
+      <p class="sub" id="nParticipants" style="margin-bottom:1rem">–</p>
+
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-lbl">Avg pre-score</div>
+          <div class="metric-val" id="dAvgPre">–</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">Avg post-score</div>
+          <div class="metric-val" id="dAvgPost">–</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">Improved</div>
+          <div class="metric-val" id="dImproved">–</div>
+          <div class="metric-sub lvl-low" id="dImprovedPct">–</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <h3 style="margin-bottom:0.5rem">Average pre vs post score</h3>
+      <div class="chart-legend">
+        <span><span class="legend-swatch" style="background:#5a9e78"></span>Before activity</span>
+        <span><span class="legend-swatch" style="background:#5499b0"></span>After activity</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="barChart" role="img" aria-label="Bar chart comparing average pre and post stress scores for all participants">Average pre and post stress score comparison</canvas>
+      </div>
+
+      <hr class="divider">
+      <h3 style="margin-bottom:0.5rem">Stress level distribution</h3>
+      <div class="chart-legend">
+        <span><span class="legend-swatch" style="background:#5a9e78"></span>Before activity</span>
+        <span><span class="legend-swatch" style="background:#5499b0"></span>After activity</span>
+      </div>
+      <div class="chart-wrap2">
+        <canvas id="distChart" role="img" aria-label="Grouped bar chart showing count of participants at each stress level before and after the breathing activity">Stress level distribution before and after the breathing activity</canvas>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="resetApp()">↺ Reset for next participant</button>
+    </div>
+  </div>
+
+</div><!-- /.app -->
+
+<script>
+/* ───────────────────────────────────────────────
+   DATA
+─────────────────────────────────────────────── */
+const QUESTIONS = [
+  "Upset or unsettled by something unexpected that just happened?",
+  "Unable to control the important things happening around you?",
+  "Nervous, tense, or stressed?",
+  "Unable to handle your personal problems effectively?",
+  "That things are not going your way?",
+  "Overwhelmed by the number of things you have to deal with?",
+  "Unable to control your frustration or irritability?",
+  "Weighed down or overwhelmed by life right now?",
+  "Angered by things that feel outside your control?",
+  "That your difficulties are piling up and becoming hard to overcome?"
+];
+const LIKERT_LABELS = ["Not at all","A little","Somewhat","Quite a bit","Extremely"];
+
+let currentPID = "", currentTS = "";
+let preScore = 0, postScore = 0;
+let breathInterval = null, breathRunning = false;
+let phaseIdx = 0, countVal = 4, roundsDone = 0;
+const TOTAL_ROUNDS = 4;
+const PHASES = ["Inhale","Hold","Exhale","Hold"];
+const PHASE_CLASSES = ["on-inhale","on-hold","on-exhale","on-hold"];
+const RING_CLASSES  = ["inhale","hold","exhale","hold"];
+let barChartInst = null, distChartInst = null;
+
+/* ───────────────────────────────────────────────
+   UTILITIES
+─────────────────────────────────────────────── */
+function genPID() {
+  return "P-" + Math.random().toString(36).substr(2,6).toUpperCase();
+}
+function getTS() {
+  return new Date().toLocaleString('en-GB',{
+    day:'2-digit', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit'
+  });
+}
+function classifyScore(s) {
+  if (s <= 13) return { label:"Low stress",  cls:"lvl-low" };
+  if (s <= 26) return { label:"Moderate stress", cls:"lvl-mod" };
+  return { label:"High stress", cls:"lvl-high" };
+}
+function levelIndex(s) {
+  if (s <= 13) return 0;
+  if (s <= 26) return 1;
+  return 2;
+}
+function getGroupData() {
+  try { return JSON.parse(localStorage.getItem('pss10_data') || '[]'); } catch(e) { return []; }
+}
+function saveGroupData(d) {
+  try { localStorage.setItem('pss10_data', JSON.stringify(d)); } catch(e) {}
+}
+
+/* ───────────────────────────────────────────────
+   BUILD FORM
+─────────────────────────────────────────────── */
+function buildForm(containerId, prefix) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = "";
+  const stem = document.createElement('div');
+  stem.style.cssText = 'font-size:13px;color:var(--muted);font-style:italic;margin-bottom:0.75rem;padding:0.65rem 1rem;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);';
+  stem.textContent = 'Right now, in this moment, how much do you feel…';
+  c.appendChild(stem);
+  QUESTIONS.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'q-block';
+    let html = `<div class="q-num">Question ${i+1} of 10</div>`;
+    html += `<div class="q-text">${q}</div>`;
+    html += `<div class="likert">`;
+    LIKERT_LABELS.forEach((lbl, v) => {
+      html += `
+        <label>
+          <input type="radio" name="${prefix}_q${i}" value="${v}">
+          <div class="lbtn"><span class="val">${v}</span>${lbl}</div>
+        </label>`;
+    });
+    html += `</div>`;
+    div.innerHTML = html;
+    c.appendChild(div);
+  });
+}
+
+/* ───────────────────────────────────────────────
+   SCORING
+─────────────────────────────────────────────── */
+function getScore(prefix) {
+  let total = 0, answered = 0;
+  for (let i = 0; i < 10; i++) {
+    const r = document.querySelector(`input[name="${prefix}_q${i}"]:checked`);
+    if (r) { total += parseInt(r.value); answered++; }
+  }
+  return answered === 10 ? total : null;
+}
+
+/* ───────────────────────────────────────────────
+   STEP TRANSITIONS
+─────────────────────────────────────────────── */
+function showStep(id) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function submitBefore() {
+  const s = getScore("pre");
+  if (s === null) { document.getElementById('err1').style.display = 'block'; return; }
+  document.getElementById('err1').style.display = 'none';
+  preScore = s;
+  showStep('step2');
+}
+
+function goStep3() {
+  buildForm('afterForm', 'post');
+  showStep('step3');
+}
+
+function submitAfter() {
+  const s = getScore("post");
+  if (s === null) { document.getElementById('err3').style.display = 'block'; return; }
+  document.getElementById('err3').style.display = 'none';
+  postScore = s;
+  const data = getGroupData();
+  data.push({ pid: currentPID, ts: currentTS, pre: preScore, post: postScore });
+  saveGroupData(data);
+  renderResults(data);
+  showStep('step4');
+}
+
+/* ───────────────────────────────────────────────
+   BOX BREATHING
+─────────────────────────────────────────────── */
+function startBreathing() {
+  if (breathRunning) return;
+  breathRunning = true;
+  document.getElementById('breathBtn').style.display = 'none';
+  phaseIdx = 0; countVal = 4; roundsDone = 0;
+  updateBreathUI();
+  breathInterval = setInterval(breathTick, 1000);
+}
+
+function breathTick() {
+  countVal--;
+  if (countVal <= 0) {
+    phaseIdx++;
+    if (phaseIdx >= 4) {
+      phaseIdx = 0;
+      roundsDone++;
+      document.getElementById('roundsCount').textContent = roundsDone;
+    }
+    if (roundsDone >= TOTAL_ROUNDS) { endBreathing(); return; }
+    countVal = 4;
+  }
+  updateBreathUI();
+}
+
+function updateBreathUI() {
+  document.getElementById('breathCount').textContent = countVal;
+  document.getElementById('breathPhase').textContent = PHASES[phaseIdx];
+  const ring = document.getElementById('breathRing');
+  ring.className = "";
+  ring.classList.add(RING_CLASSES[phaseIdx]);
+  document.querySelectorAll('.bphase').forEach((el, i) => {
+    el.className = 'bphase' + (i === phaseIdx ? ' ' + PHASE_CLASSES[i] : '');
+  });
+}
+
+function endBreathing() {
+  clearInterval(breathInterval);
+  breathRunning = false;
+  document.getElementById('breathCount').textContent = '✓';
+  document.getElementById('breathPhase').textContent = 'Complete!';
+  const ring = document.getElementById('breathRing');
+  ring.className = "";
+  ring.style.borderColor = '#5a9e78';
+  ring.style.background   = '#EAF3DE';
+  document.querySelectorAll('.bphase').forEach(el => el.className = 'bphase');
+  document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+/* ───────────────────────────────────────────────
+   RESULTS
+─────────────────────────────────────────────── */
+function renderResults(data) {
+  const pre  = classifyScore(preScore);
+  const post = classifyScore(postScore);
+  const diff = postScore - preScore;
+  const n    = data.length;
+
+  document.getElementById('pidResult').textContent =
+    `ID: ${currentPID}  ·  ${currentTS}`;
+
+  document.getElementById('rPre').textContent  = preScore;
+  document.getElementById('rPost').textContent = postScore;
+  document.getElementById('rPreLvl').innerHTML  = `<span class="${pre.cls}">${pre.label}</span>`;
+  document.getElementById('rPostLvl').innerHTML = `<span class="${post.cls}">${post.label}</span>`;
+
+  const diffTxt = (diff > 0 ? '+' : '') + diff;
+  document.getElementById('rDiff').textContent = diffTxt;
+
+  const msgEl = document.getElementById('resultMsg');
+  if (diff < 0) {
+    document.getElementById('rDiffLbl').innerHTML = '<span class="lvl-low">Decreased ↓</span>';
+    msgEl.className = 'result-msg msg-good';
+    msgEl.textContent = 'Your stress score decreased after the breathing activity. Well done — that is exactly the goal!';
+  } else if (diff === 0) {
+    document.getElementById('rDiffLbl').textContent = 'No change';
+    msgEl.className = 'result-msg msg-same';
+    msgEl.textContent = 'No change in score. Regular practice of box breathing tends to show greater effects over time.';
+  } else {
+    document.getElementById('rDiffLbl').innerHTML = '<span class="lvl-high">Increased ↑</span>';
+    msgEl.className = 'result-msg msg-bad';
+    msgEl.textContent = 'Your score increased slightly. This can happen — continue practicing breathing techniques for cumulative benefits.';
+  }
+
+  /* Group stats */
+  document.getElementById('nParticipants').textContent =
+    `${n} participant${n === 1 ? '' : 's'} recorded in this session`;
+  const avgPre  = data.reduce((a,d) => a+d.pre,  0) / n;
+  const avgPost = data.reduce((a,d) => a+d.post, 0) / n;
+  const improved = data.filter(d => d.post < d.pre).length;
+
+  document.getElementById('dAvgPre').textContent   = avgPre.toFixed(1);
+  document.getElementById('dAvgPost').textContent  = avgPost.toFixed(1);
+  document.getElementById('dImproved').textContent = improved;
+  document.getElementById('dImprovedPct').textContent =
+    Math.round(improved / n * 100) + '% of participants';
+
+  /* Distributions */
+  const preCounts  = [0,0,0];
+  const postCounts = [0,0,0];
+  data.forEach(d => {
+    preCounts[levelIndex(d.pre)]++;
+    postCounts[levelIndex(d.post)]++;
+  });
+
+  renderBarChart(avgPre, avgPost);
+  renderDistChart(preCounts, postCounts);
+}
+
+function renderBarChart(avgPre, avgPost) {
+  if (barChartInst) barChartInst.destroy();
+  barChartInst = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Before activity', 'After activity'],
+      datasets: [{
+        label: 'Average score',
+        data: [
+          Math.round(avgPre  * 10) / 10,
+          Math.round(avgPost * 10) / 10
+        ],
+        backgroundColor: ['#5a9e78', '#5499b0'],
+        borderColor:      ['#2A6041', '#2a5f78'],
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' Average score: ' + ctx.parsed.y.toFixed(1)
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0, max: 40,
+          ticks: { stepSize: 10 },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          title: { display: true, text: 'Score (0–40)', font: { size: 12 }, color: '#9B9890' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderDistChart(preCounts, postCounts) {
+  if (distChartInst) distChartInst.destroy();
+  distChartInst = new Chart(document.getElementById('distChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Low (0–13)', 'Moderate (14–26)', 'High (27–40)'],
+      datasets: [
+        {
+          label: 'Before',
+          data: preCounts,
+          backgroundColor: '#5a9e78',
+          borderColor: '#2A6041',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'After',
+          data: postCounts,
+          backgroundColor: '#5499b0',
+          borderColor: '#2a5f78',
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, precision: 0 },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          title: { display: true, text: 'Number of participants', font: { size: 12 }, color: '#9B9890' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* ───────────────────────────────────────────────
+   RESET
+─────────────────────────────────────────────── */
+function resetApp() {
+  clearInterval(breathInterval);
+  breathRunning = false;
+  phaseIdx = 0; countVal = 4; roundsDone = 0;
+
+  currentPID = genPID();
+  currentTS  = getTS();
+  document.getElementById('pidDisplay').textContent = currentPID;
+  document.getElementById('tsDisplay').textContent  = currentTS;
+
+  /* Reset breathing UI */
+  document.getElementById('breathBtn').style.display  = 'inline-block';
+  document.getElementById('nextBtn').style.display    = 'none';
+  document.getElementById('breathCount').textContent  = '–';
+  document.getElementById('breathPhase').textContent  = 'Press Start';
+  const ring = document.getElementById('breathRing');
+  ring.className = '';
+  ring.style.borderColor = '';
+  ring.style.background  = '';
+  document.querySelectorAll('.bphase').forEach(el => el.className = 'bphase');
+  document.getElementById('roundsCount').textContent = '0';
+
+  buildForm('beforeForm', 'pre');
+  showStep('step1');
+}
+
+/* ───────────────────────────────────────────────
+   INIT
+─────────────────────────────────────────────── */
+currentPID = genPID();
+currentTS  = getTS();
+document.getElementById('pidDisplay').textContent = currentPID;
+document.getElementById('tsDisplay').textContent  = currentTS;
+buildForm('beforeForm', 'pre');
+</script>
+</body>
+</html>
